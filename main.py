@@ -22,8 +22,6 @@ def get_article_link(url : str = 'https://books.toscrape.com/') -> str :
 
     return lien
 
-
-
 def get_article_data(incomplete_link : str = 'https://books.toscrape.com/'):
     complete_link = url + incomplete_link
     response = requests.get(complete_link)
@@ -79,26 +77,21 @@ def transform_article_data(data_to_transform):
 
 
     return transformed_article_data
-
-        
+     
 def load_article_data(data_to_load):
-    with open('output.csv', 'w', newline='') as file_csv:
+    with open('article_data_output.csv', 'w', newline='') as file_csv:
         header = (data_to_load[0].keys())
         writer = csv.DictWriter(file_csv, fieldnames=header)
         writer.writeheader()
         for row in data_to_load:
             writer.writerow(row)
-            
+
 
 
 link = get_article_link(url)
-#article_data = []
-#get_article_data(link)
-#print(article_data)
 article_data_to_transform = get_article_data(link)
 article_data_to_load = transform_article_data(article_data_to_transform)
 load_article_data(article_data_to_load)
-
 print("data loaded")
 
 # def scrape_book():
