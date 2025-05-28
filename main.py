@@ -4,56 +4,71 @@ import csv
 
 # Instance of object type str as the url of the website
 url : str = 'https://books.toscrape.com/'
+url_fantasy : str = 'https://books.toscrape.com/catalogue/category/books/fantasy_19/index.html'
 
 
-def get_article_link(url : str = 'https://books.toscrape.com/') -> str :
+def extract_article_links(url : str = 'https://books.toscrape.com/') -> list :
+    # Intance of object type list to hold all links
+    links : list = []
+    # Getting rid of index.html and replacing it by page-i.html
+    i = 1
+    url_category_page = url[:-10] + 'page-' + str(i) + '.html'
     # Instance of object type requests.models.Response
-    r : requests.models.Response = requests.get(url)
+    r : requests.models.Response = requests.get(url_category_page)
 
-    # Verification of network establishment
-    if r.status_code == 200:
-        # Instance of object type BeautifulSoup
-        soup : BeautifulSoup = BeautifulSoup(r.text, 'html.parser')
-        balise_section = soup.find('section')
-        balise_li = balise_section.find('li')
-        balise_h3 = balise_li.find('h3')
-        balise_a = balise_h3.find('a')
-        lien = balise_a['href']
+    while r.status_code != 404:
+        # Verification of network establishment
+        if r.status_code == 200:
+            # Instance of object type BeautifulSoup
+            soup : BeautifulSoup = BeautifulSoup(r.text, 'html.parser')
+            # Getting every article url in the page
+            for li in soup.find_all('li', class_ = 'col-xs-6 col-sm-4 col-md-3 col-lg-3'):
+                link = li.find('h3').find('a')['href'][9:]
+                links.append(link)
 
-    return lien
+            # Go to next page    
+            i += 1
+            url_category_page = url[:-10] + 'page-' + str(i) + '.html'
+            r : requests.models.Response = requests.get(url_category_page)
 
-def get_article_data(incomplete_link : str = 'https://books.toscrape.com/'):
-    complete_link = url + incomplete_link
-    response = requests.get(complete_link)
+    return links
+            
 
-    if response.status_code == 200:
-        extracted_article_data = []
-        extracted_data = {}
-        extracted_data['product_page_url'] = complete_link
-        article_soup = BeautifulSoup(response.text, 'html.parser')
-        extracted_data['title'] = article_soup.find('article').find('h1').text
-        rating = article_soup.find('article').find('div', {'class' : 'col-sm-6 product_main'}).find_all('p')
-        rating2 = rating[2]
-        rating3 = rating2['class']
-        rating4 = rating3[1]
-        extracted_data['review_rating'] = rating4
-        description = article_soup.find('article').find_all('p')
-        extracted_data['product_description'] = description[3].text
-        image_url = article_soup.find('article').find('img')
-        extracted_data['image_url'] = url + image_url['src'][6:]
-        category = article_soup.find('ul').find_all("li")
-        extracted_data['category'] = category[2].find('a').text
-        trs = article_soup.find_all('tr')
-        for tr in trs:
-            for (th, td) in zip(tr.find_all('th'), tr.find_all('td')):
-                extracted_data[th.text.lower()] = td.text
-        #Getting rid of the pound symbol
-        extracted_data['price (excl. tax)'] = extracted_data['price (excl. tax)'][2:]
-        extracted_data['price (incl. tax)'] = extracted_data['price (incl. tax)'][2:]
-        extracted_data['tax'] = extracted_data['tax'][2:]
-        
-        #Adding the dictionary to the list
-        extracted_article_data.append(extracted_data)
+
+def get_article_data(): # incomplete_link : str = 'https://books.toscrape.com/'
+    extracted_article_data = []
+    with open ('article_urls_output.txt', 'r') as file_txt:
+        for row in file_txt:
+            complete_link = url + row.strip()
+            response = requests.get(complete_link)
+
+            if response.status_code == 200:
+                extracted_data = {}
+                extracted_data['product_page_url'] = complete_link
+                article_soup = BeautifulSoup(response.text, 'html.parser')
+                extracted_data['title'] = article_soup.find('article').find('h1').text
+                rating = article_soup.find('article').find('div', class_ = 'col-sm-6 product_main').find_all('p')
+                rating2 = rating[2]
+                rating3 = rating2['class']
+                rating4 = rating3[1]
+                extracted_data['review_rating'] = rating4
+                description = article_soup.find('article').find_all('p')
+                extracted_data['product_description'] = description[3].text
+                image_url = article_soup.find('article').find('img')
+                extracted_data['image_url'] = url + image_url['src'][6:]
+                category = article_soup.find('ul').find_all("li")
+                extracted_data['category'] = category[2].find('a').text
+                trs = article_soup.find_all('tr')
+                for tr in trs:
+                    for (th, td) in zip(tr.find_all('th'), tr.find_all('td')):
+                        extracted_data[th.text.lower()] = td.text
+                #Getting rid of the pound symbol
+                extracted_data['price (excl. tax)'] = extracted_data['price (excl. tax)'][2:]
+                extracted_data['price (incl. tax)'] = extracted_data['price (incl. tax)'][2:]
+                extracted_data['tax'] = extracted_data['tax'][2:]
+                
+                #Adding the dictionary to the list
+                extracted_article_data.append(extracted_data)
 
     return extracted_article_data
 
@@ -79,6 +94,7 @@ def transform_article_data(data_to_transform):
     return transformed_article_data
      
 def load_article_data(data_to_load):
+    # data to load is a list of dictionaries
     with open('article_data_output.csv', 'w', newline='') as file_csv:
         header = (data_to_load[0].keys())
         writer = csv.DictWriter(file_csv, fieldnames=header)
@@ -86,7 +102,14 @@ def load_article_data(data_to_load):
         for row in data_to_load:
             writer.writerow(row)
 
+def load_article_urls(urls_to_load : list = []):
+    with open('article_urls_output.txt', 'w') as file_txt:
+        for row in urls_to_load:
+            file_txt.write('catalogue/' + row + '\n')
 
+
+"""
+#main
 
 link = get_article_link(url)
 article_data_to_transform = get_article_data(link)
@@ -94,10 +117,10 @@ article_data_to_load = transform_article_data(article_data_to_transform)
 load_article_data(article_data_to_load)
 print("data loaded")
 
-# def scrape_book():
-"""
-This function scrapes the html code and return a dictionary of all the elements of the product
 """
 
-# récupérer avec une fonction les infos d'un livre
-# récupérer avec une fonction tous les livres d'une catégorie
+#article_urls_to_load = extract_article_links(url_fantasy)
+#load_article_urls(article_urls_to_load)
+article_data_to_transform = get_article_data()
+print(len(article_data_to_transform))
+print(article_data_to_transform[0])
