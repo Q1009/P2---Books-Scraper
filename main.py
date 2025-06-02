@@ -7,9 +7,55 @@ import os
 url : str = 'https://books.toscrape.com/'
 url_fantasy : str = 'https://books.toscrape.com/catalogue/category/books/fantasy_19/index.html'
 
+def extract_category_data(url : str) -> list : #Etre précis dans le typage, liste de quoi ?
+    # Intance of object type list to hold all links
+    extracted_category_data : list[dict[str, str]] = []
+    # Instance of object type requests
+    r = requests.get(url)
+    # Verification of network establishment
+    if r.status_code == 200:
+        # Instance of object type BeautifulSoup
+        soup : BeautifulSoup = BeautifulSoup(r.text, 'html.parser')
+        # Getting every category name and url on the website
+        for li in soup.find('ul', class_ = 'nav nav-list').find('li').find('ul').find_all('li'):
+            extracted_data = {}
+            extracted_data['category_name'] = li.find('a').string.strip()
+            extracted_data['category_url'] = url + li.find('a')['href']
+            # Adding the dictionnary to the list
+            extracted_category_data.append(extracted_data)
+
+    return extracted_category_data
+
+def create_directories_and_urls_file(extracted_category_data):
+    parent_directory_name = 'Books'
+    try:
+        os.mkdir(parent_directory_name)
+        print(f"Directory '{parent_directory_name}' created successfully.")
+    except FileExistsError:
+        print(f"Directory '{parent_directory_name}' already exists.")
+    except PermissionError:
+        print(f"Permission denied: Unable to create '{parent_directory_name}'.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    for category_data in extracted_category_data:
+        nested_directory = parent_directory_name + '/' + category_data['category_name']
+        try:
+            os.mkdir(nested_directory)
+            print(f"Nested directories '{nested_directory}' created successfully.")
+        except FileExistsError:
+            print(f"One or more directories in '{nested_directory}' already exist.")
+        except PermissionError:
+            print(f"Permission denied: Unable to create '{nested_directory}'.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        
+
+
+
 def extract_article_links(url : str) -> list : #Etre précis dans le typage, liste de quoi ?
     # Intance of object type list to hold all links
-    links : list = []
+    article_links : list = []
     # Getting rid of index.html and replacing it by page-i.html
     i = 1
     url_category_page : str = url[:-10] + 'page-' + str(i) + '.html'
@@ -24,14 +70,14 @@ def extract_article_links(url : str) -> list : #Etre précis dans le typage, lis
             # Getting every article url in the page
             for li in soup.find_all('li', class_ = 'col-xs-6 col-sm-4 col-md-3 col-lg-3'):
                 link = li.find('h3').find('a')['href'][9:]
-                links.append(link)
+                article_links.append(link)
 
             # Go to next page    
             i += 1
             url_category_page = url[:-10] + 'page-' + str(i) + '.html'
             r : requests.models.Response = requests.get(url_category_page)
 
-    return links
+    return article_links
             
 
 
@@ -124,3 +170,6 @@ print("data loaded")
 
 """
 
+category_data_to_load = extract_category_data(url)
+create_directories_and_urls_file(category_data_to_load)
+print(len(category_data_to_load))
