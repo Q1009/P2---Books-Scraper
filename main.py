@@ -5,7 +5,6 @@ import os
 
 # Instance of object type str as the url of the website
 url : str = 'https://books.toscrape.com/'
-url_fantasy : str = 'https://books.toscrape.com/catalogue/category/books/fantasy_19/index.html'
 
 def extract_category_data(url : str) -> list : #Etre précis dans le typage, liste de quoi ?
     # Intance of object type list to hold all links
@@ -38,59 +37,73 @@ def create_directories_and_urls_file(extracted_category_data):
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    for category_data in extracted_category_data:
-        nested_directory = parent_directory_name + '/' + category_data['category_name']
-        try:
-            os.mkdir(nested_directory)
-            print(f"Nested directories '{nested_directory}' created successfully.")
-        except FileExistsError:
-            print(f"One or more directories in '{nested_directory}' already exist.")
-        except PermissionError:
-            print(f"Permission denied: Unable to create '{nested_directory}'.")
-        except Exception as e:
-            print(f"An error occurred: {e}")
+    with open('Books/category_urls_output.txt', 'w') as file_txt:
+        for category_data in extracted_category_data:
+            file_txt.write(category_data['category_url'] + '\n')
+            nested_directory = parent_directory_name + '/' + category_data['category_name']
+            try:
+                os.mkdir(nested_directory)
+                print(f"Nested directories '{nested_directory}' created successfully.")
+            except FileExistsError:
+                print(f"One or more directories in '{nested_directory}' already exist.")
+            except PermissionError:
+                print(f"Permission denied: Unable to create '{nested_directory}'.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
         
 
 
 
-def extract_article_links(url : str) -> list : #Etre précis dans le typage, liste de quoi ?
+def extract_article_links(url : str) -> list[str] : #Etre précis dans le typage, liste de quoi ?
     # Intance of object type list to hold all links
     article_links : list = []
-    # Getting rid of index.html and replacing it by page-i.html
-    i = 1
-    url_category_page : str = url[:-10] + 'page-' + str(i) + '.html'
-    # Instance of object type requests.models.Response
-    r : requests.models.Response = requests.get(url_category_page)
+    response = requests.get(url)
 
-    while r.status_code != 404:
-        # Verification of network establishment
-        if r.status_code == 200:
-            # Instance of object type BeautifulSoup
-            soup : BeautifulSoup = BeautifulSoup(r.text, 'html.parser')
+    if response.status_code == 200:
+        # Instance of object type BeautifulSoup
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        if not soup.find('ul', class_ = 'pager'):
             # Getting every article url in the page
             for li in soup.find_all('li', class_ = 'col-xs-6 col-sm-4 col-md-3 col-lg-3'):
                 link = li.find('h3').find('a')['href'][9:]
                 article_links.append(link)
 
-            # Go to next page    
-            i += 1
-            url_category_page = url[:-10] + 'page-' + str(i) + '.html'
-            r : requests.models.Response = requests.get(url_category_page)
+        else:
+            # Getting rid of index.html and replacing it by page-i.html
+            i = 1
+            url_category_page : str = url[:-10] + 'page-' + str(i) + '.html'
+            # Instance of object type requests.models.Response
+            r = requests.get(url_category_page)
+
+            while r.status_code != 404:
+                # Verification of network establishment
+                if r.status_code == 200:
+                    # Instance of object type BeautifulSoup
+                    soup : BeautifulSoup = BeautifulSoup(r.text, 'html.parser')
+                    # Getting every article url in the page
+                    for li in soup.find_all('li', class_ = 'col-xs-6 col-sm-4 col-md-3 col-lg-3'):
+                        link = li.find('h3').find('a')['href'][9:]
+                        article_links.append(link)
+
+                    # Go to next page    
+                    i += 1
+                    url_category_page = url[:-10] + 'page-' + str(i) + '.html'
+                    r = requests.get(url_category_page)
 
     return article_links
             
 
 
-def get_article_data(): # incomplete_link : str = 'https://books.toscrape.com/'
+def get_article_data(name_of_category : str =''): # incomplete_link : str = 'https://books.toscrape.com/'
     extracted_article_data = []
-    with open ('article_urls_output.txt', 'r') as file_txt:
+    with open ('Books/' + name_of_category + '/' + name_of_category + '_book_urls.txt', 'r') as file_txt:
         for row in file_txt:
-            complete_link = url + row.strip()
-            response = requests.get(complete_link) # Le goulot est là (en termes de rapidité d'exécution)
+            response = requests.get(row.strip()) # Le goulot est là (en termes de rapidité d'exécution)
 
             if response.status_code == 200:
                 extracted_data = {}
-                extracted_data['product_page_url'] = complete_link
+                extracted_data['product_page_url'] = row.strip()
                 article_soup = BeautifulSoup(response.text, 'html.parser') # passer en parametre une option d'encoding UTF 8
                 extracted_data['title'] = article_soup.find('article').find('h1').text
                 rating = article_soup.find('article').find('div', class_ = 'col-sm-6 product_main').find_all('p')
@@ -136,40 +149,43 @@ def transform_article_data(data_to_transform):
         #Adding the dictionary to the list
         transformed_article_data.append(transformed_data)
 
-
     return transformed_article_data
      
-def load_article_data(data_to_load): # Mettre un nom de fichier par catégorie (os mkdir pour le répertoire)
+def load_article_data(data_to_load, name_of_category):
     # data to load is a list of dictionaries
-    with open('article_data_output.csv', 'w', newline='') as file_csv:
+    with open('Books/' + name_of_category + '/' + name_of_category + '_book_data.csv', 'w', newline='') as file_csv:
         header = (data_to_load[0].keys())
         writer = csv.DictWriter(file_csv, fieldnames=header)
         writer.writeheader()
+        number_of_books = 0
         for row in data_to_load:
             writer.writerow(row)
+            number_of_books += 1
+        print(f'{number_of_books} books loaded.')
 
-def load_article_urls(urls_to_load : list = []):
-    with open('article_urls_output.txt', 'w') as file_txt:
+    return number_of_books
+
+def load_article_urls(urls_to_load : list[str] = [], name_of_category : str = 'Asupp'):
+    with open('Books/' + name_of_category + '/' + name_of_category + '_book_urls.txt', 'w') as file_txt:
         for row in urls_to_load:
-            file_txt.write('catalogue/' + row + '\n')
+            file_txt.write(url + 'catalogue/' + row + '\n')
 
 
-"""
-
-Créer un dossier par catégorie -> on y retrouve le csv et toutes les images
-#main
-
-#article_urls_to_load = extract_article_links(url_fantasy)
-#load_article_urls(article_urls_to_load)
-article_data_to_transform = get_article_data()
-article_data_to_load = transform_article_data(article_data_to_transform)
-print(len(article_data_to_load))
-#print(article_data_to_load[0])
-#load_article_data(article_data_to_load)
-print("data loaded")
-
-"""
+# Main
 
 category_data_to_load = extract_category_data(url)
 create_directories_and_urls_file(category_data_to_load)
-print(len(category_data_to_load))
+category_number = 1
+book_number = 0
+
+for category_data in category_data_to_load:
+    print(f'In category n°{category_number} :')
+    article_urls_to_load = extract_article_links(category_data['category_url'])
+    load_article_urls(article_urls_to_load, category_data['category_name'])
+    article_data_to_transform = get_article_data(category_data['category_name'])
+    article_data_to_load = transform_article_data(article_data_to_transform)
+    books_loaded = load_article_data(article_data_to_load, category_data['category_name'])
+    book_number = book_number + books_loaded
+    category_number += 1
+
+print(f'Script finished with {book_number} books loaded.')
