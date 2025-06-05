@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import os
+import re
 
 # Instance of object type str as the url of the website
 url : str = 'https://books.toscrape.com/'
@@ -14,7 +15,7 @@ def extract_category_data(url : str) -> list : #Etre précis dans le typage, lis
     # Verification of network establishment
     if r.status_code == 200:
         # Instance of object type BeautifulSoup
-        soup : BeautifulSoup = BeautifulSoup(r.text, 'html.parser')
+        soup : BeautifulSoup = BeautifulSoup(r.content, 'html.parser')
         # Getting every category name and url on the website
         for li in soup.find('ul', class_ = 'nav nav-list').find('li').find('ul').find_all('li'):
             extracted_data = {}
@@ -94,7 +95,6 @@ def extract_article_links(url : str) -> list[str] : #Etre précis dans le typage
     return article_links
             
 
-
 def get_article_data(name_of_category : str =''): # incomplete_link : str = 'https://books.toscrape.com/'
     extracted_article_data = []
     with open ('Books/' + name_of_category + '/' + name_of_category + '_book_urls.txt', 'r') as file_txt:
@@ -104,28 +104,17 @@ def get_article_data(name_of_category : str =''): # incomplete_link : str = 'htt
             if response.status_code == 200:
                 extracted_data = {}
                 extracted_data['product_page_url'] = row.strip()
-                article_soup = BeautifulSoup(response.text, 'html.parser') # passer en parametre une option d'encoding UTF 8
-                extracted_data['title'] = article_soup.find('article').find('h1').text
-                rating = article_soup.find('article').find('div', class_ = 'col-sm-6 product_main').find_all('p')
-                rating2 = rating[2]
-                rating3 = rating2['class']
-                rating4 = rating3[1]
-                extracted_data['review_rating'] = rating4 # convertir en chiffre () avec une table de conversion
-                description = article_soup.find('article').find_all('p')
-                extracted_data['product_description'] = description[3].text
-                image_url = article_soup.find('article').find('img')
-                extracted_data['image_url'] = url + image_url['src'][6:]
-                category = article_soup.find('ul').find_all("li")
-                extracted_data['category'] = category[2].find('a').text
+                article_soup = BeautifulSoup(response.content, 'html.parser', from_encoding='utf-8')
+                extracted_data['title'] = article_soup.find('article').find('h1').string
+                extracted_data['review_rating'] = article_soup.find('div', class_ = 'col-sm-6 product_main').find_all('p')[2]['class'][1]
+                extracted_data['product_description'] = article_soup.find('article').find_all('p')[3].string
+                extracted_data['image_url'] = article_soup.find('article').find('img')['src'][6:]
+                extracted_data['category'] = article_soup.find('ul').find_all("li")[2].find('a').string
                 trs = article_soup.find_all('tr')
                 for tr in trs:
                     for (th, td) in zip(tr.find_all('th'), tr.find_all('td')):
-                        extracted_data[th.text.lower()] = td.text
-                #Getting rid of the pound symbol
-                extracted_data['price (excl. tax)'] = extracted_data['price (excl. tax)'][2:]
-                extracted_data['price (incl. tax)'] = extracted_data['price (incl. tax)'][2:]
-                extracted_data['tax'] = extracted_data['tax'][2:]
-                
+                        extracted_data[th.string.lower()] = td.string
+
                 #Adding the dictionary to the list
                 extracted_article_data.append(extracted_data)
 
@@ -138,13 +127,13 @@ def transform_article_data(data_to_transform):
         transformed_data['product_page_url'] = data['product_page_url']
         transformed_data['universal_product_code'] = data['upc']
         transformed_data['title'] = data['title']
-        transformed_data['price_including_tax'] = data['price (incl. tax)']
-        transformed_data['price_excluding_tax'] = data['price (excl. tax)']
-        transformed_data['number_available'] = data['availability'] # le nombre n'est pas isolé
+        transformed_data['price_including_tax'] = float(data['price (incl. tax)'][1:])
+        transformed_data['price_excluding_tax'] = float(data['price (excl. tax)'][1:])
+        transformed_data['number_available'] = int(re.findall(r'(\d+)', data['availability'])[0])
         transformed_data['product_description'] = data['product_description']
         transformed_data['category'] = data['category']
-        transformed_data['review_rating'] = data['review_rating']
-        transformed_data['image_url'] = data['image_url']
+        transformed_data['review_rating'] = rating_conversion(data['review_rating'])
+        transformed_data['image_url'] = url + data['image_url']
 
         #Adding the dictionary to the list
         transformed_article_data.append(transformed_data)
@@ -170,6 +159,24 @@ def load_article_urls(urls_to_load : list[str] = [], name_of_category : str = 'A
         for row in urls_to_load:
             file_txt.write(url + 'catalogue/' + row + '\n')
 
+def rating_conversion(rating_as_text : str ='none') -> int:
+    rating_as_number = 0
+    match rating_as_text:
+        case 'One':
+            rating_as_number = 1
+        case 'Two':
+            rating_as_number = 2
+        case 'Three':
+            rating_as_number = 3
+        case 'Four':
+            rating_as_number = 4
+        case 'Five':
+            rating_as_number = 5
+        case _:
+            rating_as_number = 999
+
+    return rating_as_number
+
 
 # Main
 
@@ -189,3 +196,4 @@ for category_data in category_data_to_load:
     category_number += 1
 
 print(f'Script finished with {book_number} books loaded.')
+
