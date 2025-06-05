@@ -3,9 +3,12 @@ from bs4 import BeautifulSoup
 import csv
 import os
 import re
+import io
+from PIL import Image
 
 # Instance of object type str as the url of the website
 url : str = 'https://books.toscrape.com/'
+url2 = 'https://books.toscrape.com/catalogue/crown-of-midnight-throne-of-glass-2_888/index.html'
 
 def extract_category_data(url : str) -> list : #Etre précis dans le typage, liste de quoi ?
     # Intance of object type list to hold all links
@@ -108,12 +111,19 @@ def get_article_data(name_of_category : str =''): # incomplete_link : str = 'htt
                 extracted_data['title'] = article_soup.find('article').find('h1').string
                 extracted_data['review_rating'] = article_soup.find('div', class_ = 'col-sm-6 product_main').find_all('p')[2]['class'][1]
                 extracted_data['product_description'] = article_soup.find('article').find_all('p')[3].string
-                extracted_data['image_url'] = article_soup.find('article').find('img')['src'][6:]
+                extracted_data['image_url'] = url + article_soup.find('article').find('img')['src'][6:]
                 extracted_data['category'] = article_soup.find('ul').find_all("li")[2].find('a').string
                 trs = article_soup.find_all('tr')
                 for tr in trs:
                     for (th, td) in zip(tr.find_all('th'), tr.find_all('td')):
                         extracted_data[th.string.lower()] = td.string
+
+                # Downloading image file
+                image_content = requests.get(extracted_data['image_url']).content
+                image_file = io.BytesIO(image_content)
+                image = Image.open(image_file).convert('RGB')
+                file_path_name_format = 'Books/' + name_of_category + '/' + extracted_data['title'].replace('/','_') + '.jpg'
+                image.save(file_path_name_format)
 
                 #Adding the dictionary to the list
                 extracted_article_data.append(extracted_data)
@@ -133,7 +143,7 @@ def transform_article_data(data_to_transform):
         transformed_data['product_description'] = data['product_description']
         transformed_data['category'] = data['category']
         transformed_data['review_rating'] = rating_conversion(data['review_rating'])
-        transformed_data['image_url'] = url + data['image_url']
+        transformed_data['image_url'] = data['image_url']
 
         #Adding the dictionary to the list
         transformed_article_data.append(transformed_data)
