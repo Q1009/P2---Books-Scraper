@@ -185,7 +185,7 @@ def get_article_data(name_of_category: str) -> list[dict]:
         for row in file_txt:
             # Le goulot est là (en termes de rapidité d'exécution)
             response = requests.get(row.strip())
-            # response.encoding = "utf-8"
+            # response.encoding = 'utf-8'
             # Checking website connection
             if response.status_code == 200:
                 # Instance of the dictionary that will contain
