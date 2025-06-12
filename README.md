@@ -3,7 +3,7 @@
 
 [![forthebadge](https://forthebadge.com/images/badges/made-with-python.svg)](http://forthebadge.com)
 
-This script aims at scraping the "" website in order to gather specific data for analysis
+This script aims at scraping the <https://books.toscrape.com> website in order to gather specific data for analysis
 
 ## Get started
 
@@ -11,17 +11,17 @@ This script aims at scraping the "" website in order to gather specific data for
 
 ### Requirements
 
-- Start by cloning the GitHub repository
+- Start by cloning the GitHub repository  
 git clone http://
-- Create your virtual environment
+- Create your virtual environment  
 python3 -m venv env
 
 ### Installation
 
-- Activate your virtual environment
-source env/bin/activate
-- Install requirements
-pip install requirements
+- Activate your virtual environment  
+`source env/bin/activate`  
+- Install requirements  
+`pip install -r requirements.txt`  
 
 ## Running
 
@@ -33,7 +33,7 @@ python main.py
 
 You will then find a 'Books' directory in which sub directories, corresponding to every category of books, will contain the requested data:
 
-- Books' illustration
+- Books' illustrations
 - A csv file containing :
     - product page url
     - universal product code
