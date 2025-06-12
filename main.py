@@ -185,7 +185,6 @@ def get_article_data(name_of_category: str) -> list[dict]:
         for row in file_txt:
             # Le goulot est là (en termes de rapidité d'exécution)
             response = requests.get(row.strip())
-            # response.encoding = 'utf-8'
             # Checking website connection
             if response.status_code == 200:
                 # Instance of the dictionary that will contain
@@ -194,7 +193,7 @@ def get_article_data(name_of_category: str) -> list[dict]:
                 # Data extraction
                 extracted_data['product_page_url'] = row.strip()
                 article_soup = BeautifulSoup(
-                    response.content, 'html.parser', from_encoding='utf-8')
+                    response.content, 'html.parser')
                 extracted_data['title'] = article_soup.find(
                     'article').find('h1').string
                 extracted_data['review_rating'] = article_soup.find(
@@ -320,7 +319,8 @@ def load_article_data(data_to_load: list[dict], name_of_category: str) -> int:
     # Creates a .csv file in the appropriate directory and writes
     # each dictionary of the list as a line
     with open('Books/' + name_of_category + '/' + name_of_category +
-              '_book_data.csv', 'w', newline='') as file_csv:
+              '_book_data.csv', 'w', encoding='utf-8-sig',
+              newline='') as file_csv:
         # Getting the header from the keys of the dictionary
         header: list[str] = (data_to_load[0].keys())
         # Instance of object type DictWriter
