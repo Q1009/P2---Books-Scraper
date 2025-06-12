@@ -16,6 +16,8 @@ This script aims at scraping the <https://books.toscrape.com> website in order t
 
 - Start by cloning the GitHub repository by typing the following:  
 `git clone https://github.com/Q1009/P2---Books-Scraper.git`
+- Go in the downloaded directory by typing the following:  
+`cd P2---Books-Scraper`
 - Create your virtual environment by typing the following:  
 `python3 -m venv env`
 
