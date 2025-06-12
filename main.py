@@ -392,7 +392,7 @@ def rating_conversion(rating_as_text: str = 'none') -> int:
 
 
 # Main
-
+"""
 category_data_to_load = extract_category_data(url)
 create_directories_and_urls_file(category_data_to_load)
 category_number = 1
@@ -411,3 +411,27 @@ for category_data in category_data_to_load:
     category_number += 1
 
 print('Script finished with ' + str(book_number) + ' books loaded.')
+"""
+
+# Demo
+# This will iterate only through the Fantasy category for demo purposes
+
+category_data_to_load = extract_category_data(url)
+create_directories_and_urls_file(category_data_to_load)
+category_name: str = category_data_to_load[17]['category_name']
+book_number = 0
+# Scraping the Fantasy category
+print('In category ' + category_name + ':')
+article_urls_to_load = extract_article_urls(
+    category_data_to_load[17]['category_url'])
+load_article_urls(article_urls_to_load,
+                  category_data_to_load[17]['category_name'])
+article_data_to_transform = get_article_data(
+    category_data_to_load[17]['category_name'])
+article_data_to_load = transform_article_data(article_data_to_transform)
+books_loaded = load_article_data(
+    article_data_to_load, category_data_to_load[17]['category_name'])
+book_number = book_number + books_loaded
+
+print('Script finished with ' + str(book_number) + ' books loaded.')
+
