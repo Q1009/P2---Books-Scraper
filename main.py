@@ -434,4 +434,3 @@ books_loaded = load_article_data(
 book_number = book_number + books_loaded
 
 print('Script finished with ' + str(book_number) + ' books loaded.')
-
