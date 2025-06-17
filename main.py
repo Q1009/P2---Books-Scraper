@@ -142,7 +142,10 @@ def extract_article_urls(url: str) -> list[str]:
                     # Instance of object type BeautifulSoup
                     soup = BeautifulSoup(response_2.content, 'html.parser')
                     # Getting every article url in the page
-                    for li in soup.find_all('li', class_='col-xs-6 col-sm-4 col-md-3 col-lg-3'):
+                    for li in soup.find_all(
+                            'li',
+                            class_='col-xs-6 col-sm-4 col-md-3 col-lg-3'
+                            ):
                         link: str = li.find('h3').find('a')['href'][9:]
                         article_urls.append(link)
                     # Go to next page
@@ -183,7 +186,6 @@ def get_article_data(name_of_category: str) -> list[dict]:
     with open('Books/' + name_of_category + '/' +
               name_of_category + '_book_urls.txt', 'r') as file_txt:
         for row in file_txt:
-            # Le goulot est là (en termes de rapidité d'exécution)
             response = requests.get(row.strip())
             # Checking website connection
             if response.status_code == 200:
