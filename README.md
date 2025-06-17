@@ -55,7 +55,8 @@ url: str = 'https://books.toscrape.com/'
 - The execution will last for about 5 to 10 mins.  
 
 - Optionally, you can type in the following command to generate a Flake8 report on the code:  
-`flake8 main.py > flakereport.txt`
+`flake8 main.py --format=html --htmldir=flake-report`
+    - In the newly created flake-report directory, open the index.html file with your web browser to see the report  
 
 - Deactivate your virtual environment before closing the terminal by typing:  
 `deactivate`
